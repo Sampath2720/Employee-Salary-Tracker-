@@ -1,0 +1,35 @@
+name: Employee Salary Tracker CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to Azure VM
+        uses: appleboy/ssh-action@v1.0.3
+
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+
+          script: |
+            cd ~/employee-salary-tracker
+
+            git pull
+
+            docker stop employee-salary-tracker || true
+            docker rm employee-salary-tracker || true
+
+            docker build -t employee-salary-tracker:latest .
+
+            docker run -d \
+              --restart unless-stopped \
+              --name employee-salary-tracker \
+              -p 5002:5000 \
+              employee-salary-tracker:latest
